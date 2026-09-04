@@ -14,7 +14,7 @@ const port = Number(process.env.PORT) || 3000;
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
 const cookieName = "pd_session";
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, ssl: { rejectUnauthorized: false } });
-const catalogSource = require("fs").readFileSync(require("path").join(__dirname, "app.js"), "utf8");
+const catalogSource = require("fs").readFileSync(require("path").join(__dirname, "public", "app.js"), "utf8");
 const catalog = new Map([...catalogSource.matchAll(/\[\s*(["'`])(.+?)\1\s*,\s*(\d+(?:\.\d+)?)\s*\]/g)].map(([, , name, price], id) => [id, { name, price: Number(price) }]));
 
 app.set("trust proxy", 1);
@@ -28,11 +28,13 @@ app.get("/", (req, res) => {
     service: "Protesis Dent API"
   });
 });
-app.get("/api/health", async (req, res) => {
-  res.json({
-    ok: true,
-    database: "configured"
-  });
+app.get("/api/health", async (req, res, next) => {
+  try {
+    await pool.query("SELECT 1");
+    res.json({ ok: true, database: "connected" });
+  } catch (error) {
+    next(error);
+  }
 });
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false, message: { error: "Demasiados intentos. Intenta de nuevo más tarde." } });
@@ -119,8 +121,8 @@ app.post("/api/quotes", authenticate, async (req, res, next) => {
   const { items, notes = null } = req.body || {};
   if (!Array.isArray(items) || !items.length || items.length > 100 || (notes !== null && !validText(notes, 1000))) return res.status(400).json({ error: "Cotización inválida" });
   const normalized = items.map(item => ({ productId: Number(item.productId), quantity: Number(item.quantity) }));
-  if (normalized.some(item => !Number.isInteger(item.productId) || !catalog.has(String(item.productId)) || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999)) return res.status(400).json({ error: "Productos inválidos" });
-  normalized.forEach(item => { item.name = catalog.get(String(item.productId)).name; item.price = catalog.get(String(item.productId)).price; });
+  if (normalized.some(item => !Number.isInteger(item.productId) || !catalog.has(item.productId) || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999)) return res.status(400).json({ error: "Productos inválidos" });
+  normalized.forEach(item => { const product = catalog.get(item.productId); item.name = product.name; item.price = product.price; });
   const subtotal = normalized.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const client = await pool.connect();
   try {

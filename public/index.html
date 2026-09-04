@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none';">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="Catálogo de equipos, instrumental y refacciones dentales de Prótesis Dent.">
+  <title>Prótesis Dent | Catálogo dental</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="profile.css">
+</head>
+<body>
+  <div class="notice">Servicio técnico especializado <span>•</span> Envíos a toda la República Mexicana</div>
+  <header class="header">
+    <a class="brand" href="#inicio" aria-label="Prótesis Dent, inicio">
+      <span class="tooth">PD</span>
+      <span><b>PRÓTESIS DENT</b><small>SERVICIO TÉCNICO</small></span>
+    </a>
+    <nav><a href="#catalogo">Catálogo</a><a href="#servicios">Servicios</a></nav>
+    <div class="header-actions"><button class="profile-button" id="openProfile" aria-label="Abrir perfil">Perfil</button><button class="cart-button" id="openCart" aria-label="Abrir cotización">Cotización <span id="cartCount">0</span></button></div>
+  </header>
+
+  <main id="inicio">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">EQUIPOS • REFACCIONES • SOPORTE</p>
+        <h1>Tecnología dental que mantiene tu clínica en movimiento.</h1>
+        <p>Explora nuestro catálogo, agrega los productos que necesitas y solicita tu cotización completa por WhatsApp.</p>
+        <a class="primary" href="#catalogo">Explorar catálogo</a>
+      </div>
+      <div class="hero-image"><img src="protesis-dent-banner.png" alt="Prótesis Dent, servicio técnico y equipo dental"></div>
+      <div class="hero-stats"><div><strong id="productTotal">0</strong><span>Productos</span></div><div><strong>MXN</strong><span>Precios visibles</span></div><div><strong>1 clic</strong><span>Cotización por WhatsApp</span></div></div>
+    </section>
+
+    <section class="catalog" id="catalogo">
+      <div class="section-heading"><div><p class="eyebrow">CATÁLOGO GENERAL</p><h2>Encuentra lo que necesitas</h2></div><p>Selecciona productos y cantidades para armar tu cotización.</p></div>
+      <div class="toolbar">
+        <label class="search"><span>⌕</span><input id="search" type="search" placeholder="Buscar equipo, lámpara, pieza…" autocomplete="off"></label>
+        <select id="category" aria-label="Filtrar por categoría"></select>
+        <select id="sort" aria-label="Ordenar productos"><option value="name">Ordenar: A–Z</option><option value="low">Menor precio</option><option value="high">Mayor precio</option></select>
+      </div>
+      <div class="results"><span id="resultCount"></span><button id="clearFilters">Limpiar filtros</button></div>
+      <div class="product-grid" id="productGrid"></div>
+      <div class="empty" id="emptyState" hidden><span>⌕</span><h3>No encontramos ese producto</h3><p>Prueba con otro nombre o categoría.</p></div>
+    </section>
+
+    <section class="services" id="servicios">
+      <div><p class="eyebrow">MÁS QUE UN CATÁLOGO</p><h2>Respaldo técnico para tu equipo dental.</h2></div>
+      <div class="service-grid"><article><span>01</span><h3>Asesoría</h3><p>Te ayudamos a encontrar el equipo compatible con tu clínica.</p></article><article><span>02</span><h3>Instalación</h3><p>Puesta en marcha profesional y orientación para su uso.</p></article><article><span>03</span><h3>Servicio técnico</h3><p>Diagnóstico, mantenimiento y refacciones para equipo dental.</p></article></div>
+    </section>
+  </main>
+
+  <footer><div class="brand"><span class="tooth">PD</span><span><b>PRÓTESIS DENT</b><small>SERVICIO TÉCNICO</small></span></div><p>Equipos dentales, refacciones y soporte especializado.</p><small>© 2026 Prótesis Dent. Precios expresados en MXN.</small></footer>
+
+  <div class="overlay" id="overlay" hidden></div>
+  <aside class="cart" id="cart" aria-hidden="true" aria-label="Carrito de cotización">
+    <div class="cart-head"><div><p class="eyebrow">TU SELECCIÓN</p><h2>Cotización</h2></div><button id="closeCart" aria-label="Cerrar">×</button></div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-empty" id="cartEmpty"><span>▱</span><h3>Tu lista está vacía</h3><p>Agrega productos del catálogo para solicitar una cotización.</p></div>
+    <div class="cart-summary" id="cartSummary" hidden><div><span>Subtotal estimado</span><strong id="subtotal"></strong></div><small>El total final, disponibilidad y condiciones se confirman en la cotización.</small><button class="save-quote" id="saveQuote">Guardar cotización</button><button class="whatsapp" id="sendWhatsApp">Enviar cotización por WhatsApp</button><button class="clear-cart" id="clearCart">Vaciar lista</button></div>
+  </aside>
+  <div class="profile-backdrop" id="profileBackdrop" hidden></div>
+  <section class="profile-panel" id="profilePanel" aria-hidden="true" aria-labelledby="profileTitle" role="dialog">
+    <button class="profile-close" id="closeProfile" aria-label="Cerrar perfil">×</button>
+    <p class="eyebrow">ÁREA PERSONAL</p>
+    <h2 id="profileTitle">Tus cotizaciones</h2>
+    <p class="profile-intro">Accede a tu cuenta para guardar y consultar tus cotizaciones desde cualquier dispositivo.</p>
+    <form id="profileForm">
+      <label for="profileName">Nombre</label>
+      <input id="profileName" type="text" placeholder="Nombre de la clínica" autocomplete="name" maxlength="120">
+      <label for="profileEmail">Correo electrónico</label>
+      <input id="profileEmail" type="email" placeholder="tu@clinica.com" autocomplete="email" required>
+      <label for="profilePassword">Contraseña</label>
+      <input id="profilePassword" type="password" placeholder="Mínimo 10 caracteres" autocomplete="current-password" minlength="10" required>
+      <button class="profile-submit" id="profileSubmit" type="submit">Iniciar sesión</button>
+      <button class="auth-toggle" id="authToggle" type="button">Crear una cuenta nueva</button>
+    </form>
+    <div class="profile-user" id="profileUser" hidden></div>
+    <div class="profile-controls" id="profileControls" hidden><button type="button" id="changeProfile">Cambiar cuenta</button><button type="button" id="logoutProfile">Cerrar sesión</button><button type="button" class="delete-data" id="deleteProfileData">Eliminar mi cuenta y datos</button></div>
+    <div class="quote-history" id="quoteHistory"></div>
+  </section>
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <script src="app.js"></script>
+  <script src="profile.js"></script>
+</body>
+</html>
