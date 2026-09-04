@@ -19,6 +19,18 @@ app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || false, credentials: true }));
 app.use(express.json({ limit: "32kb" }));
+app.get("/", (req, res) => {
+  res.json({
+    ok: true,
+    service: "Protesis Dent API"
+  });
+});
+app.get("/api/health", async (req, res) => {
+  res.json({
+    ok: true,
+    database: "configured"
+  });
+});
 app.use(express.static(__dirname, { index: "index.html" }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false, message: { error: "Demasiados intentos. Intenta de nuevo más tarde." } });
