@@ -5,6 +5,7 @@ const profileBackdrop = document.querySelector("#profileBackdrop");
 const profileForm = document.querySelector("#profileForm");
 const profileEmail = document.querySelector("#profileEmail");
 const profileUser = document.querySelector("#profileUser");
+const profileControls = document.querySelector("#profileControls");
 const quoteHistory = document.querySelector("#quoteHistory");
 
 function readStorage(key, fallback) {
@@ -39,6 +40,7 @@ function renderProfile() {
   profileEmail.value = email;
   profileUser.hidden = !email;
   profileUser.textContent = email ? `Perfil activo: ${email}` : "";
+  profileControls.hidden = !email;
   profileForm.hidden = !!email;
   const quotes = getQuotes().filter(quote => quote.email === email);
   quoteHistory.replaceChildren();
@@ -62,7 +64,19 @@ function renderProfile() {
     date.textContent = new Date(quote.date).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
     const total = document.createElement("b");
     total.textContent = money(quote.total);
-    item.append(title, date, total);
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = "Ver productos";
+    const list = document.createElement("ul");
+    quote.items.forEach(({ id, quantity }) => {
+      const product = productById.get(Number(id));
+      if (!product) return;
+      const line = document.createElement("li");
+      line.textContent = `${quantity} x ${product.name}`;
+      list.append(line);
+    });
+    details.append(summary, list);
+    item.append(title, date, total, details);
     quoteHistory.append(item);
   });
 }
@@ -87,6 +101,7 @@ function saveQuote() {
   const email = getEmail();
   const entries = Object.entries(cart).filter(([id, quantity]) => productById.has(Number(id)) && Number.isSafeInteger(quantity) && quantity > 0);
   if (!email) {
+    closeCart();
     openProfile();
     toast("Agrega tu correo para guardar la cotización");
     return;
@@ -119,6 +134,21 @@ profileForm.addEventListener("submit", event => {
   renderProfile();
   closeProfile();
   toast("✓ Perfil guardado correctamente");
+});
+document.querySelector("#changeProfile").addEventListener("click", () => {
+  profileForm.hidden = false;
+  profileEmail.focus();
+});
+document.querySelector("#logoutProfile").addEventListener("click", () => {
+  try { localStorage.removeItem(profileStorageKey); } catch {}
+  renderProfile();
+  toast("Sesión local cerrada");
+});
+document.querySelector("#deleteProfileData").addEventListener("click", () => {
+  if (!confirm("¿Eliminar tu perfil y todas tus cotizaciones guardadas en este dispositivo?")) return;
+  try { localStorage.removeItem(profileStorageKey); localStorage.removeItem(quotesStorageKey); } catch {}
+  renderProfile();
+  toast("Tus datos locales fueron eliminados");
 });
 document.querySelector("#openProfile").addEventListener("click", openProfile);
 document.querySelector("#closeProfile").addEventListener("click", closeProfile);
