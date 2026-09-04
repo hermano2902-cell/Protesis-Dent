@@ -68,11 +68,16 @@
     <button class="profile-close" id="closeProfile" aria-label="Cerrar perfil">×</button>
     <p class="eyebrow">ÁREA PERSONAL</p>
     <h2 id="profileTitle">Tus cotizaciones</h2>
-    <p class="profile-intro">Guarda tus selecciones en este dispositivo y consúltalas cuando las necesites.</p>
+    <p class="profile-intro">Accede a tu cuenta para guardar y consultar tus cotizaciones desde cualquier dispositivo.</p>
     <form id="profileForm">
+      <label for="profileName">Nombre</label>
+      <input id="profileName" type="text" placeholder="Nombre de la clínica" autocomplete="name" maxlength="120">
       <label for="profileEmail">Correo electrónico</label>
       <input id="profileEmail" type="email" placeholder="tu@clinica.com" autocomplete="email" required>
-      <button class="profile-submit" type="submit">Guardar perfil</button>
+      <label for="profilePassword">Contraseña</label>
+      <input id="profilePassword" type="password" placeholder="Mínimo 10 caracteres" autocomplete="current-password" minlength="10" required>
+      <button class="profile-submit" id="profileSubmit" type="submit">Iniciar sesión</button>
+      <button class="auth-toggle" id="authToggle" type="button">Crear una cuenta nueva</button>
     </form>
     <div class="profile-user" id="profileUser" hidden></div>
     <div class="profile-controls" id="profileControls" hidden><button type="button" id="changeProfile">Cambiar correo</button><button type="button" id="logoutProfile">Cerrar sesión</button><button type="button" class="delete-data" id="deleteProfileData">Eliminar mis datos</button></div>
