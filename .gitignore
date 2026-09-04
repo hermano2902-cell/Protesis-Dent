@@ -1,0 +1,8 @@
+.neon
+.agents/
+skills-lock.json
+node_modules/
+
+.env
+.env.*
+!.env.example
