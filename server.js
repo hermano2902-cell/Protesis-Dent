@@ -14,11 +14,14 @@ const port = Number(process.env.PORT) || 3000;
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
 const cookieName = "pd_session";
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10, ssl: { rejectUnauthorized: false } });
+const catalogSource = require("fs").readFileSync(require("path").join(__dirname, "app.js"), "utf8");
+const catalog = new Map([...catalogSource.matchAll(/\[\s*(["'`])(.+?)\1\s*,\s*(\d+(?:\.\d+)?)\s*\]/g)].map(([, , name, price], id) => [id, { name, price: Number(price) }]));
 
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(cors({ origin: process.env.FRONTEND_ORIGIN || false, credentials: true }));
 app.use(express.json({ limit: "32kb" }));
+app.use(cookieParser());
 app.get("/", (req, res) => {
   res.json({
     ok: true,
@@ -31,20 +34,18 @@ app.get("/api/health", async (req, res) => {
     database: "configured"
   });
 });
-app.use(express.static(__dirname, { index: "index.html" }));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false, message: { error: "Demasiados intentos. Intenta de nuevo más tarde." } });
 const apiLimiter = rateLimit({ windowMs: 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false });
 app.use("/api", apiLimiter);
 app.use("/api/auth", authLimiter);
-app.use(cookieParser());
 
 function validEmail(email) { return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254; }
 function validText(value, max) { return typeof value === "string" && value.trim().length > 0 && value.trim().length <= max; }
 function newSessionToken() { return crypto.randomBytes(32).toString("base64url"); }
 function hashToken(token) { return crypto.createHash("sha256").update(token).digest("hex"); }
-function setSessionCookie(res, token) { res.cookie(cookieName, token, { httpOnly: true, secure: isProduction, sameSite: "lax", maxAge: sessionDurationMs, path: "/" }); }
-function clearSessionCookie(res) { res.clearCookie(cookieName, { httpOnly: true, secure: isProduction, sameSite: "lax", path: "/" }); }
+function setSessionCookie(res, token) { res.cookie(cookieName, token, { httpOnly: true, secure: isProduction, sameSite: isProduction ? "none" : "lax", maxAge: sessionDurationMs, path: "/" }); }
+function clearSessionCookie(res) { res.clearCookie(cookieName, { httpOnly: true, secure: isProduction, sameSite: isProduction ? "none" : "lax", path: "/" }); }
 
 async function createSession(userId, res) {
   const token = newSessionToken();
@@ -92,6 +93,19 @@ app.post("/api/auth/login", async (req, res, next) => {
 app.post("/api/auth/logout", authenticate, async (req, res, next) => {
   try { await pool.query("delete from sessions where user_id = $1", [req.user.id]); clearSessionCookie(res); res.status(204).end(); } catch (error) { next(error); }
 });
+app.delete("/api/auth/me", authenticate, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    await client.query("begin");
+    await client.query("delete from quote_items where quote_id in (select id from quotes where user_id = $1)", [req.user.id]);
+    await client.query("delete from quotes where user_id = $1", [req.user.id]);
+    await client.query("delete from sessions where user_id = $1", [req.user.id]);
+    await client.query("delete from users where id = $1", [req.user.id]);
+    await client.query("commit");
+    clearSessionCookie(res);
+    res.status(204).end();
+  } catch (error) { await client.query("rollback"); next(error); } finally { client.release(); }
+});
 app.get("/api/auth/me", authenticate, (req, res) => res.json({ user: req.user }));
 
 app.get("/api/quotes", authenticate, async (req, res, next) => {
@@ -104,14 +118,15 @@ app.get("/api/quotes", authenticate, async (req, res, next) => {
 app.post("/api/quotes", authenticate, async (req, res, next) => {
   const { items, notes = null } = req.body || {};
   if (!Array.isArray(items) || !items.length || items.length > 100 || (notes !== null && !validText(notes, 1000))) return res.status(400).json({ error: "Cotización inválida" });
-  const normalized = items.map(item => ({ productId: Number(item.productId), name: item.name, price: Number(item.price), quantity: Number(item.quantity) }));
-  if (normalized.some(item => !Number.isInteger(item.productId) || !validText(item.name, 200) || !Number.isFinite(item.price) || item.price < 0 || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999)) return res.status(400).json({ error: "Productos inválidos" });
+  const normalized = items.map(item => ({ productId: Number(item.productId), quantity: Number(item.quantity) }));
+  if (normalized.some(item => !Number.isInteger(item.productId) || !catalog.has(String(item.productId)) || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999)) return res.status(400).json({ error: "Productos inválidos" });
+  normalized.forEach(item => { item.name = catalog.get(String(item.productId)).name; item.price = catalog.get(String(item.productId)).price; });
   const subtotal = normalized.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const client = await pool.connect();
   try {
     await client.query("begin");
     const quote = await client.query("insert into quotes (user_id, folio, total, status, notes) values ($1, $2, $3, 'pending', $4) returning id, folio, total, status, notes, created_at", [req.user.id, `PD-${Date.now().toString(36).toUpperCase()}`, subtotal, notes ? notes.trim() : null]);
-    for (const item of normalized) await client.query("insert into quote_items (quote_id, product_id, product_name, unit_price, quantity, subtotal) values ($1, $2, $3, $4, $5, $6)", [quote.rows[0].id, item.productId, item.name.trim(), item.price, item.quantity, item.price * item.quantity]);
+    for (const item of normalized) await client.query("insert into quote_items (quote_id, product_id, product_name, unit_price, quantity) values ($1, $2, $3, $4, $5)", [quote.rows[0].id, item.productId, item.name, item.price, item.quantity]);
     await client.query("commit");
     res.status(201).json({ quote: { ...quote.rows[0], items: normalized } });
   } catch (error) { await client.query("rollback"); next(error); } finally { client.release(); }
